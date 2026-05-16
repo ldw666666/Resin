@@ -345,7 +345,7 @@ func (p *ForwardProxy) handleHTTP(w http.ResponseWriter, r *http.Request) {
 		lifecycle.setProxyError(proxyErr)
 		lifecycle.setUpstreamError("forward_roundtrip", err)
 		lifecycle.setHTTPStatus(proxyErr.HTTPCode)
-		go p.health.RecordResult(routed.Route.NodeHash, false)
+		recordPassiveResultAsync(p.health, routed.Route, false)
 		writeProxyError(w, proxyErr)
 		return
 	}
@@ -364,13 +364,13 @@ func (p *ForwardProxy) handleHTTP(w http.ResponseWriter, r *http.Request) {
 			lifecycle.setProxyError(ErrUpstreamRequestFailed)
 			lifecycle.setUpstreamError("forward_upstream_to_client_copy", copyErr)
 			lifecycle.setNetOK(false)
-			go p.health.RecordResult(routed.Route.NodeHash, false)
+			recordPassiveResultAsync(p.health, routed.Route, false)
 		}
 		return
 	}
 
 	// Full body transfer succeeded — count as network success even for 5xx HTTP.
-	go p.health.RecordResult(routed.Route.NodeHash, true)
+	recordPassiveResultAsync(p.health, routed.Route, true)
 }
 
 func (p *ForwardProxy) handleCONNECT(w http.ResponseWriter, r *http.Request) {

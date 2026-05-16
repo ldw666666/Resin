@@ -127,6 +127,9 @@ func TestBootstrapTopology_CreatesDefaultPlatformWhenMissing(t *testing.T) {
 	if defaultPlat.AllocationPolicy != "PREFER_LOW_LATENCY" {
 		t.Fatalf("allocation_policy: got %q, want %q", defaultPlat.AllocationPolicy, "PREFER_LOW_LATENCY")
 	}
+	if defaultPlat.PassiveCircuitBreakerDisabled {
+		t.Fatal("passive_circuit_breaker_disabled: got true, want false")
+	}
 
 	if !reflect.DeepEqual(defaultPlat.RegexFilters, []string{`^Provider/.*`}) {
 		t.Fatalf("regex_filters: got %v", defaultPlat.RegexFilters)

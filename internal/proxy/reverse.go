@@ -439,7 +439,7 @@ func (p *ReverseProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			lifecycle.setUpstreamError("reverse_roundtrip", err)
 			lifecycle.setNetOK(false)
 			lifecycle.setHTTPStatus(proxyErr.HTTPCode)
-			go p.health.RecordResult(nodeHashRaw, false)
+			recordPassiveResultAsync(p.health, routed.Route, false)
 			writeProxyError(rw, proxyErr)
 		},
 		ModifyResponse: func(resp *http.Response) error {
@@ -462,7 +462,7 @@ func (p *ReverseProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					lifecycle.setRespHeadersCaptured(respHeaders, respHeadersLen, respHeadersTruncated)
 				}
 				lifecycle.setNetOK(true)
-				go p.health.RecordResult(nodeHashRaw, true)
+				recordPassiveResultAsync(p.health, routed.Route, true)
 				return nil
 			}
 			if resp.Body != nil && resp.Body != http.NoBody {
@@ -486,7 +486,7 @@ func (p *ReverseProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// (client abort vs upstream reset vs network blip), and the added
 			// complexity is not worth it for the current phase.
 			lifecycle.setNetOK(true)
-			go p.health.RecordResult(nodeHashRaw, true)
+			recordPassiveResultAsync(p.health, routed.Route, true)
 			return nil
 		},
 	}

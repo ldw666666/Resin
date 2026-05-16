@@ -62,6 +62,9 @@ func TestMigrateStateDB_UpgradesLegacyPlatformsColumns(t *testing.T) {
 	if ok, err := hasTableColumn(db, "platforms", "reverse_proxy_fixed_account_header"); err != nil || !ok {
 		t.Fatalf("expected migrated column reverse_proxy_fixed_account_header, ok=%v err=%v", ok, err)
 	}
+	if ok, err := hasTableColumn(db, "platforms", "passive_circuit_breaker_disabled"); err != nil || !ok {
+		t.Fatalf("expected migrated column passive_circuit_breaker_disabled, ok=%v err=%v", ok, err)
+	}
 }
 
 func TestMigrateStateDB_LegacyBaselineAdvancesToLatest(t *testing.T) {
@@ -103,11 +106,14 @@ func TestMigrateStateDB_LegacyBaselineAdvancesToLatest(t *testing.T) {
 	if dirty {
 		t.Fatalf("schema_migrations dirty=true")
 	}
-	if version != stateVersionAddIncrementalAliveNodes {
-		t.Fatalf("schema_migrations version: got %d, want %d", version, stateVersionAddIncrementalAliveNodes)
+	if version != stateVersionAddPassiveCircuitBreakerDisabled {
+		t.Fatalf("schema_migrations version: got %d, want %d", version, stateVersionAddPassiveCircuitBreakerDisabled)
 	}
 	if ok, err := hasTableColumn(db, "subscriptions", "incremental_alive_nodes"); err != nil || !ok {
 		t.Fatalf("expected migrated column subscriptions.incremental_alive_nodes, ok=%v err=%v", ok, err)
+	}
+	if ok, err := hasTableColumn(db, "platforms", "passive_circuit_breaker_disabled"); err != nil || !ok {
+		t.Fatalf("expected migrated column platforms.passive_circuit_breaker_disabled, ok=%v err=%v", ok, err)
 	}
 }
 
@@ -167,8 +173,11 @@ func TestMigrateStateDB_AddsIncrementalAliveNodesToLegacySubscriptions(t *testin
 	if dirty {
 		t.Fatalf("schema_migrations dirty=true")
 	}
-	if version != stateVersionAddIncrementalAliveNodes {
-		t.Fatalf("schema_migrations version: got %d, want %d", version, stateVersionAddIncrementalAliveNodes)
+	if version != stateVersionAddPassiveCircuitBreakerDisabled {
+		t.Fatalf("schema_migrations version: got %d, want %d", version, stateVersionAddPassiveCircuitBreakerDisabled)
+	}
+	if ok, err := hasTableColumn(db, "platforms", "passive_circuit_breaker_disabled"); err != nil || !ok {
+		t.Fatalf("expected migrated column platforms.passive_circuit_breaker_disabled, ok=%v err=%v", ok, err)
 	}
 }
 
@@ -239,11 +248,14 @@ func TestMigrateStateDB_NormalizesLegacyRandomMissAction(t *testing.T) {
 	if dirty {
 		t.Fatalf("schema_migrations dirty=true")
 	}
-	if version != stateVersionAddIncrementalAliveNodes {
-		t.Fatalf("schema_migrations version: got %d, want %d", version, stateVersionAddIncrementalAliveNodes)
+	if version != stateVersionAddPassiveCircuitBreakerDisabled {
+		t.Fatalf("schema_migrations version: got %d, want %d", version, stateVersionAddPassiveCircuitBreakerDisabled)
 	}
 	if ok, err := hasTableColumn(db, "subscriptions", "incremental_alive_nodes"); err != nil || !ok {
 		t.Fatalf("expected migrated column subscriptions.incremental_alive_nodes, ok=%v err=%v", ok, err)
+	}
+	if ok, err := hasTableColumn(db, "platforms", "passive_circuit_breaker_disabled"); err != nil || !ok {
+		t.Fatalf("expected migrated column platforms.passive_circuit_breaker_disabled, ok=%v err=%v", ok, err)
 	}
 }
 
@@ -305,7 +317,8 @@ func TestStateRepo_Platforms_CRUD(t *testing.T) {
 		ID: "plat-1", Name: "Default", StickyTTLNs: 1000,
 		RegexFilters: []string{}, RegionFilters: []string{},
 		ReverseProxyMissAction: "TREAT_AS_EMPTY", AllocationPolicy: "BALANCED",
-		UpdatedAtNs: now,
+		PassiveCircuitBreakerDisabled: true,
+		UpdatedAtNs:                   now,
 	}
 	if err := repo.UpsertPlatform(p); err != nil {
 		t.Fatal(err)
@@ -325,6 +338,9 @@ func TestStateRepo_Platforms_CRUD(t *testing.T) {
 			"RANDOM",
 		)
 	}
+	if !got.PassiveCircuitBreakerDisabled {
+		t.Fatal("expected passive_circuit_breaker_disabled to round-trip true")
+	}
 
 	// List.
 	list, err := repo.ListPlatforms()
@@ -337,6 +353,7 @@ func TestStateRepo_Platforms_CRUD(t *testing.T) {
 
 	// Idempotent upsert (update same ID).
 	p.Name = "Default-Renamed"
+	p.PassiveCircuitBreakerDisabled = false
 	if err := repo.UpsertPlatform(p); err != nil {
 		t.Fatal(err)
 	}
@@ -346,6 +363,9 @@ func TestStateRepo_Platforms_CRUD(t *testing.T) {
 	}
 	if len(list) != 1 || list[0].Name != "Default-Renamed" {
 		t.Fatalf("expected renamed platform, got %+v", list)
+	}
+	if list[0].PassiveCircuitBreakerDisabled {
+		t.Fatal("expected passive_circuit_breaker_disabled to update to false")
 	}
 
 	// Delete.

@@ -77,7 +77,7 @@ func prepareConnectTunnel(
 			}
 		}
 		if deps.health != nil {
-			go deps.health.RecordResult(nodeHashRaw, false)
+			recordPassiveResultAsync(deps.health, routed.Route, false)
 		}
 		return tunnelPrepareResult{
 			route:         routed.Route,
@@ -89,7 +89,7 @@ func prepareConnectTunnel(
 
 	recordResult := func(ok bool) {
 		if deps.health != nil {
-			go deps.health.RecordResult(nodeHashRaw, ok)
+			recordPassiveResultAsync(deps.health, routed.Route, ok)
 		}
 	}
 
